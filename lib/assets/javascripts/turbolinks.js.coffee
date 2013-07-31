@@ -19,6 +19,7 @@ fetchReplacement = (url) ->
   xhr.open 'GET', safeUrl, true
   xhr.setRequestHeader 'Accept', 'text/html, application/xhtml+xml, application/xml'
   xhr.setRequestHeader 'X-XHR-Referer', referer
+  xhr.setRequestHeader 'X-Requested-With', 'XMLHttpRequest'
 
   xhr.onload = ->
     triggerEvent 'page:receive'
