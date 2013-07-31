@@ -6,7 +6,7 @@ pageCache      = {}
 createDocument = null
 requestMethod  = document.cookie.match(/request_method=(\w+)/)?[1].toUpperCase() or ''
 xhr            = null
-
+contentWrapper = null
 
 fetchReplacement = (url) ->
   triggerEvent 'page:fetch', url: url
@@ -53,7 +53,7 @@ fetchHistory = (position) ->
 cacheCurrentPage = ->
   pageCache[currentState.position] =
     url:       document.location.href,
-    body:      document.body,
+    body:      contentWrapper? and document.querySelector(contentWrapper) or document.body,
     title:     document.title,
     positionY: window.pageYOffset,
     positionX: window.pageXOffset
@@ -70,7 +70,11 @@ constrainPageCacheTo = (limit) ->
 
 changePage = (title, body, csrfToken, runScripts) ->
   document.title = title
-  document.documentElement.replaceChild body, document.body
+  if contentWrapper?
+    wrapper = document.querySelector(contentWrapper)
+    wrapper.parentNode.replaceChild body, wrapper
+  else
+    document.documentElement.replaceChild body, document.body
   CSRFToken.update csrfToken if csrfToken?
   removeNoscriptTags()
   executeScriptTags() if runScripts
@@ -157,7 +161,12 @@ processResponse = ->
 
 extractTitleAndBody = (doc) ->
   title = doc.querySelector 'title'
-  [ title?.textContent, doc.body, CSRFToken.get(doc).token, 'runScripts' ]
+  [
+    title?.textContent,
+    contentWrapper? and doc.querySelector(contentWrapper) or doc.body,
+    CSRFToken.get(doc).token,
+    'runScripts'
+  ]
 
 CSRFToken =
   get: (doc = document) ->
@@ -292,6 +301,9 @@ browserIsntBuggy =
 requestMethodIsSafe =
   requestMethod in ['GET','']
 
+setContentWrapper = (selector) ->
+  contentWrapper = selector
+
 if browserSupportsPushState and browserIsntBuggy and requestMethodIsSafe
   visit = (url) ->
     referer = document.location.href
@@ -307,4 +319,4 @@ else
 #   Turbolinks.visit(url)
 #   Turbolinks.pagesCached()
 #   Turbolinks.pagesCached(20)
-@Turbolinks = { visit, pagesCached }
+@Turbolinks = { visit, pagesCached, setContentWrapper }
